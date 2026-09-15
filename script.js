@@ -196,15 +196,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ------------------------------------------------------------------------
-     5. CONTACT FORM VALIDATION & MODAL
+     5. CONTACT FORM & GOOGLE FORM INTEGRATION
      ------------------------------------------------------------------------ */
   const contactForm = document.getElementById('portfolio-contact-form');
   const contactDialog = document.getElementById('contact-dialog');
+  const submitBtn = document.getElementById('form-submit-btn');
   const modalUserName = document.getElementById('modal-user-name');
+  const modalUserEmail = document.getElementById('modal-user-email');
   const modalSubjectPreview = document.getElementById('modal-subject-preview');
   const modalMessagePreview = document.getElementById('modal-message-preview');
-  const modalMailtoLink = document.getElementById('modal-mailto-link');
-  const modalCopyBtn = document.getElementById('modal-copy-btn');
   const modalCloseBtn = document.getElementById('modal-close-btn');
 
   const validateField = (inputEl, condition) => {
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (contactForm) {
-    contactForm.addEventListener('submit', (e) => {
+    contactForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const nameInput = document.getElementById('form-name');
@@ -241,25 +241,59 @@ document.addEventListener('DOMContentLoaded', () => {
         const subject = subjectInput.value;
         const message = messageInput.value.trim();
 
+        // Populate dialog preview fields
         if (modalUserName) modalUserName.textContent = name;
+        if (modalUserEmail) modalUserEmail.textContent = email;
         if (modalSubjectPreview) modalSubjectPreview.textContent = subject;
         if (modalMessagePreview) modalMessagePreview.textContent = message;
 
-        const targetEmail = 'adhuzcom1@gmail.com';
-        const mailtoSubject = encodeURIComponent(`[Portfolio Inquiry] ${subject} - ${name}`);
-        const mailtoBody = encodeURIComponent(
-          `Hello Adhil,\n\nName: ${name}\nEmail: ${email}\nInquiry Topic: ${subject}\n\nMessage:\n${message}\n\nSent from your portfolio website.`
-        );
-
-        if (modalMailtoLink) {
-          modalMailtoLink.setAttribute('href', `mailto:${targetEmail}?subject=${mailtoSubject}&body=${mailtoBody}`);
+        // Set button loading state
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.classList.add('is-loading');
+          const btnText = submitBtn.querySelector('.btn-text');
+          if (btnText) btnText.textContent = 'Sending Message...';
         }
 
-        if (contactDialog) {
-          if (typeof contactDialog.showModal === 'function') {
-            contactDialog.showModal();
-          } else {
-            contactDialog.setAttribute('open', '');
+        const formActionUrl = contactForm.getAttribute('action') ||
+          'https://docs.google.com/forms/u/0/d/e/1FAIpQLScP_VFvlHvrs3zxgwh5LZZE8xHUqC83meGKpP3rYVLUr3ljkQ/formResponse';
+
+        const formData = new FormData(contactForm);
+
+        try {
+          // Asynchronously POST to Google Forms in no-cors mode
+          await fetch(formActionUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: formData
+          });
+        } catch (fetchErr) {
+          console.warn('Fetch submission encountered an error, falling back to iframe submission:', fetchErr);
+          // Fallback: submit to hidden iframe
+          try {
+            contactForm.submit();
+          } catch (submitErr) {
+            console.error('Iframe fallback submission failed:', submitErr);
+          }
+        } finally {
+          // Reset button state
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('is-loading');
+            submitBtn.innerHTML = originalBtnHtml;
+          }
+
+          // Reset form fields
+          contactForm.reset();
+
+          // Show confirmation modal
+          if (contactDialog) {
+            if (typeof contactDialog.showModal === 'function') {
+              contactDialog.showModal();
+            } else {
+              contactDialog.setAttribute('open', '');
+            }
           }
         }
       }
@@ -283,22 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
         contactDialog.close();
       } else {
         contactDialog.removeAttribute('open');
-      }
-    });
-  }
-
-  if (modalCopyBtn && modalMessagePreview) {
-    modalCopyBtn.addEventListener('click', async () => {
-      const fullText = `Subject: ${modalSubjectPreview ? modalSubjectPreview.textContent : ''}\n\n${modalMessagePreview.textContent}`;
-      try {
-        await navigator.clipboard.writeText(fullText);
-        const originalText = modalCopyBtn.textContent;
-        modalCopyBtn.textContent = 'Copied!';
-        setTimeout(() => {
-          modalCopyBtn.textContent = originalText;
-        }, 2000);
-      } catch (err) {
-        console.warn('Draft copy failed:', err);
       }
     });
   }
