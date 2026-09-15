@@ -1,6 +1,13 @@
 # Dependencies
 node_modules/
 
+# Production build
+dist/
+dist-ssr/
+
+# Local env files
+*.local
+
 # OS metadata
 .DS_Store
 Thumbs.db
