@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Backups
+adhil_original.jpg
+
+# Logs
+*.log
